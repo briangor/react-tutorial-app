@@ -1,94 +1,68 @@
-import React, { Component } from "react";
+import React, { useState, useEffect } from "react";
 import tutorialDataService from "../services/tutorial.service";
 import { Link } from "react-router-dom";
 
-export default class TutorialsList extends Component {
-  constructor(props) {
-    super(props);
-    this.onChangeSearchTitle = this.onChangeSearchTitle.bind(this);
-    this.retrieveTutorials = this.retrieveTutorials.bind(this);
-    this.refreshList = this.refreshList.bind(this);
-    this.setActiveTutorial = this.setActiveTutorial.bind(this);
-    this.removeAllTutorials = this.removeAllTutorials.bind(this);
-    this.searchTitle = this.searchTitle.bind(this);
-
-    this.state = {
-      tutorials: [],
-      currentTutorial: null,
-      currentIndex: -1,
-      searchTitle: ""
+const TutorialsList = () => {
+    const [tutorials, setTutorials] = useState([]);
+    const [currentTutorial, setCurrentTutorial] = useState(null);
+    const [currentIndex, setCurrentIndex] = useState(-1);
+    const [searchTitle, setSearchTitle] = useState("");
+  
+    useEffect(() => {
+      retrieveTutorials();
+    }, []);
+  
+    const onChangeSearchTitle = e => {
+      const searchTitle = e.target.value;
+      setSearchTitle(searchTitle);
     };
-  }
-
-  componentDidMount() {
-    this.retrieveTutorials();
-  }
-
-  onChangeSearchTitle(e) {
-    const searchTitle = e.target.value;
-
-    this.setState({
-      searchTitle: searchTitle
-    });
-  }
-
-  retrieveTutorials() {
-    tutorialDataService.getAll()
-      .then(response => {
-        this.setState({
-          tutorials: response.data
+  
+    const retrieveTutorials = () => {
+      tutorialDataService.getAll()
+        .then(response => {
+          setTutorials(response.data);
+          console.log(response.data);
+        })
+        .catch(e => {
+          console.log(e);
         });
-        console.log(response.data);
-      })
-      .catch(e => {
-        console.log(e);
-      });
-  }
-
-  refreshList() {
-    this.retrieveTutorials();
-    this.setState({
-      currentTutorial: null,
-      currentIndex: -1
-    });
-  }
-
-  setActiveTutorial(tutorial, index) {
-    this.setState({
-      currentTutorial: tutorial,
-      currentIndex: index
-    });
-  }
-
-  removeAllTutorials() {
-    tutorialDataService.deleteAll()
-      .then(response => {
-        console.log(response.data);
-        this.refreshList();
-      })
-      .catch(e => {
-        console.log(e);
-      });
-  }
-
-  searchTitle() {
-    tutorialDataService.findByTitle(this.state.searchTitle)
-      .then(response => {
-        this.setState({
-          tutorials: response.data
+    };
+  
+    const refreshList = () => {
+      retrieveTutorials();
+      setCurrentTutorial(null);
+      setCurrentIndex(-1);
+    };
+  
+    const setActiveTutorial = (tutorial, index) => {
+      setCurrentTutorial(tutorial);
+      setCurrentIndex(index);
+    };
+  
+    const removeAllTutorials = () => {
+      tutorialDataService.removeAll()
+        .then(response => {
+          console.log(response.data);
+          refreshList();
+        })
+        .catch(e => {
+          console.log(e);
         });
-        console.log(response.data);
-      })
-      .catch(e => {
-        console.log(e);
-      });
-  }
-
-  render() {
-    const { searchTitle, tutorials, currentTutorial, currentIndex } = this.state;
-
+    };
+  
+    const findByTitle = () => {
+      tutorialDataService.findByTitle(searchTitle)
+        .then(response => {
+          setTutorials(response.data);
+          console.log(response.data);
+        })
+        .catch(e => {
+          console.log(e);
+        });
+    };
+  
     return (
-      <div className="list row">
+        <div className="list row">
         <div className="col-md-8">
           <div className="input-group mb-3">
             <input
@@ -96,13 +70,13 @@ export default class TutorialsList extends Component {
               className="form-control"
               placeholder="Search by title"
               value={searchTitle}
-              onChange={this.onChangeSearchTitle}
+              onChange={onChangeSearchTitle}
             />
             <div className="input-group-append">
               <button
                 className="btn btn-outline-secondary"
                 type="button"
-                onClick={this.searchTitle}
+                onClick={findByTitle}
               >
                 Search
               </button>
@@ -111,26 +85,25 @@ export default class TutorialsList extends Component {
         </div>
         <div className="col-md-6">
           <h4>Tutorials List</h4>
-
+  
           <ul className="list-group">
             {tutorials &&
               tutorials.map((tutorial, index) => (
                 <li
                   className={
-                    "list-group-item " +
-                    (index === currentIndex ? "active" : "")
+                    "list-group-item " + (index === currentIndex ? "active" : "")
                   }
-                  onClick={() => this.setActiveTutorial(tutorial, index)}
+                  onClick={() => setActiveTutorial(tutorial, index)}
                   key={index}
                 >
                   {tutorial.title}
                 </li>
               ))}
           </ul>
-
+  
           <button
             className="m-3 btn btn-sm btn-danger"
-            onClick={this.removeAllTutorials}
+            onClick={removeAllTutorials}
           >
             Remove All
           </button>
@@ -157,7 +130,7 @@ export default class TutorialsList extends Component {
                 </label>{" "}
                 {currentTutorial.published ? "Published" : "Pending"}
               </div>
-
+  
               <Link
                 to={"/tutorials/" + currentTutorial.id}
                 className="badge badge-warning"
@@ -174,5 +147,6 @@ export default class TutorialsList extends Component {
         </div>
       </div>
     );
-  }
-}
+  };
+  
+  export default TutorialsList;
