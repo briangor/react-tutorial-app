@@ -20,8 +20,21 @@ const TutorialsList = () => {
     const retrieveTutorials = () => {
       tutorialDataService.getAll()
         .then(response => {
-          setTutorials(response.data);
-          console.log(response.data);
+          // Check if response.data is an array (API v1)
+          let normalizedData;
+          if (Array.isArray(response.data)) {
+            // If API v1, assign data directly
+            normalizedData = response.data;
+          } else if (response.data.tutorials) {
+            // If API v2, retrieve tutorials array from the object
+            normalizedData = response.data.tutorials;
+          } else {
+            throw new Error("Unexpected API response format");
+          }
+
+          // Set normalized data to tutorials
+          setTutorials(normalizedData);
+          console.log(normalizedData);
         })
         .catch(e => {
           console.log(e);
