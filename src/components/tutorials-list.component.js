@@ -1,44 +1,94 @@
 import React, { useState, useEffect } from "react";
 import tutorialDataService from "../services/tutorial.service";
 import { Link } from "react-router-dom";
+import Pagination from '@mui/material/Pagination';
 
 const TutorialsList = () => {
     const [tutorials, setTutorials] = useState([]);
     const [currentTutorial, setCurrentTutorial] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(-1);
     const [searchTitle, setSearchTitle] = useState("");
+
+    const [page, setPage] = useState(1);
+    const [count, setCount] = useState(0);
+    const [pageSize, setPageSize] = useState(3);
+
+    const pageSizes = [3, 6, 9];
   
     useEffect(() => {
       retrieveTutorials();
-    }, []);
+    }, [page, pageSize]);
   
     const onChangeSearchTitle = e => {
       const searchTitle = e.target.value;
       setSearchTitle(searchTitle);
     };
+
+    const getRequestParams = (searchTitle, page, pageSize) => {
+      let params = {};
+
+      if (searchTitle) {
+        params["title"] = searchTitle;
+      }
+
+      if (page) {
+        params["page"] = page - 1;
+      }
+
+      if (pageSize) {
+        params["size"] = pageSize;
+      }
+
+      return params;
+    };
   
     const retrieveTutorials = () => {
-      tutorialDataService.getAll()
+      const params = getRequestParams(searchTitle, page, pageSize);
+
+      tutorialDataService.getAll(params)
         .then(response => {
           // Check if response.data is an array (API v1)
           let normalizedData;
           if (Array.isArray(response.data)) {
+            // Format the data to not break the pagination component
+            let data = {
+              currentPage: 0,
+              totalItems: response.data.length,
+              totalPages: 1, // since all the data is fetched as whole, display everything
+              tutorials: response.data
+            }
+          
+            setTutorials(data.tutorials);
+            setCount(data.totalPages);
+            setPageSize(data.totalItems);
             // If API v1, assign data directly
-            normalizedData = response.data;
+            // normalizedData = response.data;
           } else if (response.data.tutorials) {
+            const { tutorials, totalPages } = response.data;
+            // console.log(response.data);
+            setTutorials(tutorials);
+            setCount(totalPages);
             // If API v2, retrieve tutorials array from the object
-            normalizedData = response.data.tutorials;
+            // normalizedData = response.data.tutorials;
           } else {
             throw new Error("Unexpected API response format");
           }
 
           // Set normalized data to tutorials
-          setTutorials(normalizedData);
-          console.log(normalizedData);
+          // setTutorials(normalizedData);
         })
         .catch(e => {
           console.log(e);
         });
+    };
+
+    const handlePageChange = (event, value) => {
+      setPage(value);
+    };
+
+    const handlePageSizeChange = (event) => {
+      setPageSize(event.target.value);
+      setPage(1);
     };
   
     const refreshList = () => {
@@ -99,7 +149,7 @@ const TutorialsList = () => {
         <div className="col-md-6">
           <h4>Tutorials List</h4>
   
-          <ul className="list-group">
+          {/* <ul className="list-group">
             {tutorials &&
               tutorials.map((tutorial, index) => (
                 <li
@@ -112,11 +162,47 @@ const TutorialsList = () => {
                   {tutorial.title}
                 </li>
               ))}
+          </ul> */}
+
+          <div className="mt-3">
+            {"Items per Page: "}
+            <select onChange={handlePageSizeChange} value={pageSize}>
+              {pageSizes.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+
+            <Pagination 
+              className="my-3"
+              count={count}
+              page={page}
+              siblingCount={1}
+              boundaryCount={1}
+              variant="outlined"
+              shape="rounded"
+              onChange={handlePageChange}
+            />
+          </div>
+
+          <ul className="list-group">
+            {tutorials && 
+              tutorials.map((tutorial, index) => (
+                <li
+                  className={
+                    "list-group-item " + (index === currentIndex ? "active" : " ")
+                  }
+                  onClick={() => setActiveTutorial(tutorial, index)}
+                  key={index}>
+                    {tutorial.title}
+                  </li>
+              ))}
           </ul>
-  
           <button
             className="m-3 btn btn-sm btn-danger"
             onClick={removeAllTutorials}
+            disabled
           >
             Remove All
           </button>
